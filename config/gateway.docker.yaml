@@ -1,0 +1,50 @@
+# Docker-specific config — backend URLs use Docker service names
+# instead of localhost.
+
+server:
+  port: 8080
+  read_timeout: 5s
+  write_timeout: 10s
+
+redis:
+  addr: "redis:6379"
+  password: ""
+  db: 0
+
+rate_limit:
+  enabled: true
+  rate: 10
+  burst: 20
+
+auth:
+  enabled: true
+  jwt_secret: "${JWT_SECRET:-my-secret-key}"
+  issuer: "api-gateway"
+
+routes:
+  - path: "/api/users"
+    auth_required: true
+    backends:
+      - "http://backend-1:8081"
+      - "http://backend-2:8082"
+    retry:
+      max_attempts: 3
+      timeout: 5s
+      base_delay: 100ms
+
+  - path: "/api/orders"
+    auth_required: true
+    backends:
+      - "http://backend-3:8083"
+    retry:
+      max_attempts: 2
+      timeout: 5s
+      base_delay: 100ms
+
+  - path: "/api/health"
+    auth_required: false
+    backends:
+      - "http://backend-1:8081"
+    retry:
+      max_attempts: 1
+      timeout: 3s

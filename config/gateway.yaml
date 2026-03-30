@@ -1,0 +1,51 @@
+server:
+  port: 8080
+  read_timeout: 5s
+  write_timeout: 10s
+
+redis:
+  addr: "localhost:6379"
+  password: ""
+  db: 0
+
+# Global rate limit — applies to all routes via the middleware.
+# Uses token bucket: 'rate' tokens refill per second, up to 'burst' max.
+rate_limit:
+  enabled: true
+  rate: 10     # 10 requests/sec steady state
+  burst: 20    # allow bursts up to 20
+
+# JWT authentication settings.
+# Secret should be set via environment variable in production: ${JWT_SECRET}
+auth:
+  enabled: true
+  jwt_secret: "my-secret-key"   # CHANGE THIS / use ${JWT_SECRET} in production
+  issuer: "api-gateway"         # optional: validate the 'iss' claim
+
+routes:
+  - path: "/api/users"
+    auth_required: true          # JWT required for this route
+    backends:
+      - "http://localhost:8081"
+      - "http://localhost:8082"
+    retry:
+      max_attempts: 3
+      timeout: 5s
+      base_delay: 100ms          # exponential backoff: 100ms, 200ms, 400ms...
+
+  - path: "/api/orders"
+    auth_required: true
+    backends:
+      - "http://localhost:8083"
+    retry:
+      max_attempts: 2
+      timeout: 5s
+      base_delay: 100ms
+
+  - path: "/api/health"
+    auth_required: false         # health checks bypass auth
+    backends:
+      - "http://localhost:8081"
+    retry:
+      max_attempts: 1
+      timeout: 3s
